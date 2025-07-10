@@ -10,6 +10,8 @@ inline void profiling_block(T *data, std::vector<size_t> &dims, std::vector<std:
     if constexpr (N == 4) {
         size_t dimx = dims[0], dimy = dims[1], dimz = dims[2], dimw = dims[3], dimyzw = dimy * dimz * dimw,
                dimzw = dimz * dimw;
+        if (dimx < block_size || dimy < block_size || dimz < block_size || dimw < block_size)
+            return;
         for (size_t i = 0; i < dimx - block_size; i += block_size) {
             for (size_t j = 0; j < dimy - block_size; j += block_size) {
                 for (size_t k = 0; k < dimz - block_size; k += block_size) {
@@ -41,6 +43,8 @@ inline void profiling_block(T *data, std::vector<size_t> &dims, std::vector<std:
         }
     } else if constexpr (N == 3) {
         size_t dimx = dims[0], dimy = dims[1], dimz = dims[2], dimyz = dimy * dimz;
+        if (dimx < block_size || dimy < block_size || dimz < block_size)
+            return;
         for (size_t i = 0; i < dimx - block_size; i += block_size) {
             for (size_t j = 0; j < dimy - block_size; j += block_size) {
                 for (size_t k = 0; k < dimz - block_size; k += block_size) {
@@ -68,6 +72,8 @@ inline void profiling_block(T *data, std::vector<size_t> &dims, std::vector<std:
         }
     } else if constexpr (N == 2) {
         size_t dimx = dims[0], dimy = dims[1];
+        if (dimx < block_size || dimy < block_size)
+            return;
         for (size_t i = 0; i < dimx - block_size; i += block_size) {
             for (size_t j = 0; j < dimy - block_size; j += block_size) {
                 size_t start_idx = i * dimy + j;
@@ -91,6 +97,8 @@ inline void profiling_block(T *data, std::vector<size_t> &dims, std::vector<std:
         }
     } else {
         size_t dimx = dims[0];
+        if (dimx < block_size)
+            return;
         for (size_t i = 0; i < dimx - block_size; i += block_size) {
             size_t start_idx = i;
             T min = data[start_idx];
@@ -201,6 +209,8 @@ void sampleBlocks(T *data, std::vector<size_t> &dims, size_t sampleBlockSize,
         size_t sample_stride = static_cast<size_t>(1.0 / sample_rate);
         if (sample_stride <= 0) sample_stride = 1;
         if constexpr (N == 1) {
+            if (dims[0] < sampleBlockSize)
+                return;
             for (size_t x_start = 0; x_start < dims[0] - sampleBlockSize; x_start += sampleBlockSize) {
                 if (idx % sample_stride == 0) {
                     std::vector<size_t> starts{x_start};
@@ -211,6 +221,8 @@ void sampleBlocks(T *data, std::vector<size_t> &dims, size_t sampleBlockSize,
                 idx += 1;
             }
         } else if constexpr (N == 2) {
+            if (dims[0] < sampleBlockSize || dims[1] < sampleBlockSize)
+                return;
             for (size_t x_start = 0; x_start < dims[0] - sampleBlockSize; x_start += sampleBlockSize) {
                 for (size_t y_start = 0; y_start < dims[1] - sampleBlockSize; y_start += sampleBlockSize) {
                     if (idx % sample_stride == 0) {
@@ -223,6 +235,8 @@ void sampleBlocks(T *data, std::vector<size_t> &dims, size_t sampleBlockSize,
                 }
             }
         } else if constexpr (N == 3) {
+            if (dims[0] < sampleBlockSize || dims[1] < sampleBlockSize || dims[2] < sampleBlockSize)
+                return;
             for (size_t x_start = 0; x_start < dims[0] - sampleBlockSize; x_start += sampleBlockSize) {
                 for (size_t y_start = 0; y_start < dims[1] - sampleBlockSize; y_start += sampleBlockSize) {
                     for (size_t z_start = 0; z_start < dims[2] - sampleBlockSize; z_start += sampleBlockSize) {
@@ -237,6 +251,8 @@ void sampleBlocks(T *data, std::vector<size_t> &dims, size_t sampleBlockSize,
                 }
             }
         } else if constexpr (N == 4) {
+            if (dims[0] < sampleBlockSize || dims[1] < sampleBlockSize || dims[2] < sampleBlockSize || dims[3] < sampleBlockSize)
+                return;
             for (size_t x_start = 0; x_start < dims[0] - sampleBlockSize; x_start += sampleBlockSize) {
                 for (size_t y_start = 0; y_start < dims[1] - sampleBlockSize; y_start += sampleBlockSize) {
                     for (size_t z_start = 0; z_start < dims[2] - sampleBlockSize; z_start += sampleBlockSize) {
