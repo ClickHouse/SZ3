@@ -376,9 +376,10 @@ class Config {
         require(sizeof(uchar));
         uchar confSize = 0;
         read(confSize, c);
-        if (confSize > cmpSize - static_cast<size_t>(c - c0))
+        /// `confSize` is the total size of the config blob, including this prefix byte.
+        if (confSize > cmpSize)
             throw std::out_of_range("SZ3 Config::load: config size exceeds the buffer");
-        auto c1 = c + confSize;
+        auto c1 = c0 + confSize;
 
         require(sizeof(N));
         read(N, c);
