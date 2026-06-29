@@ -393,6 +393,24 @@ class Config {
         dims = bytes2vector<size_t>(c, bitWidth, N);
         require(sizeof(num));
         read(num, c);
+        /// The element count must equal the product of the dimensions, otherwise the predictor would
+        /// iterate over more grid positions than were allocated for the decompressed data. Validate
+        /// the product with an overflow check.
+        {
+            size_t dims_product = 1;
+            bool dims_ok = true;
+            for (size_t dim : dims)
+            {
+                if (dim == 0 || dims_product > std::numeric_limits<size_t>::max() / dim)
+                {
+                    dims_ok = false;
+                    break;
+                }
+                dims_product *= dim;
+            }
+            if (!dims_ok || dims_product != num)
+                throw std::out_of_range("SZ3 Config::load: dimensions inconsistent with the element count");
+        }
         require(sizeof(cmprAlgo));
         read(cmprAlgo, c);
 
