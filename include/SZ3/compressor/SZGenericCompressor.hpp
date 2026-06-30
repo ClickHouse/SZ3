@@ -73,7 +73,13 @@ class SZGenericCompressor : public concepts::CompressorInterface<T> {
         encoder.load(bufferPos, bufferSize);
 
         size_t quant_inds_size = 0;
-        read(quant_inds_size, bufferPos);
+        read(quant_inds_size, bufferPos, bufferSize);
+        // The number of quantization indices is read from untrusted data. Every decomposition reachable here
+        // consumes exactly conf.num indices while walking the data grid, so a smaller count would cause an
+        // out-of-bounds read of quant_inds during decompression and a larger one is an untrusted allocation.
+        // Require an exact match before decoding.
+        if (quant_inds_size != conf.num)
+            throw std::out_of_range("SZ3: quantization index count does not match the number of data points");
         auto quant_inds = encoder.decode(bufferPos, quant_inds_size);
         encoder.postprocess_decode();
 
