@@ -113,8 +113,13 @@ char* SZ_compress(const SZ3::Config& config, const T* data, size_t& cmpSize) {
  * SZ3::Config conf;
  * SZ_decompress(conf, cmpData, cmpSize, decData);
  */
-template <class T>
-void SZ_decompress(SZ3::Config& config, const char* cmpData, size_t cmpSize, T*& decData) {
+/**
+ * Parses and validates the SZ3 header and the serialized config from the compressed data, WITHOUT
+ * decompressing. This lets a caller inspect the configuration (e.g. the compression algorithm) before
+ * dispatching, so that crafted input can be rejected before it reaches an algorithm-specific decoder.
+ * Returns the size of the compressed payload (the bytes between the header and the config).
+ */
+inline uint64_t SZ_load_config(SZ3::Config& config, const char* cmpData, size_t cmpSize) {
     using namespace SZ3;
 
     auto cmpDataPos = reinterpret_cast<const uchar*>(cmpData);
@@ -150,6 +155,18 @@ void SZ_decompress(SZ3::Config& config, const char* cmpData, size_t cmpSize, T*&
     }
     auto cmpConfPos = cmpDataPos + cmpDataSize;
     config.load(cmpConfPos, cmpSize - 16 - cmpDataSize);
+
+    return cmpDataSize;
+}
+
+template <class T>
+void SZ_decompress(SZ3::Config& config, const char* cmpData, size_t cmpSize, T*& decData) {
+    using namespace SZ3;
+
+    uint64_t cmpDataSize = SZ_load_config(config, cmpData, cmpSize);
+
+    // The compressed payload starts right after the 16-byte header.
+    auto cmpDataPos = reinterpret_cast<const uchar*>(cmpData) + 16;
 
     if (decData == nullptr) {
         decData = new T[config.num];
