@@ -52,10 +52,16 @@ class SZGenericCompressor : public concepts::CompressorInterface<T> {
         uchar *buffer_pos = buffer;
 
         decomposition.save(buffer_pos);
-        encoder.save(buffer_pos);
 
-        //store the size of quant_inds is necessary as it is not always equal to conf.num
+        // Store the size of quant_inds; it is necessary as it is not always equal to conf.num.
+        // It is written BEFORE the encoder so that the encoder's serialized tree is immediately followed by
+        // its encoded stream, with no field in between. On decompression the encoder records how many bytes
+        // remain right after its tree and uses that as the bound for the encoded stream; a field written
+        // between the tree and the stream would make that bound too large and let a corrupted/truncated
+        // block read past the end of the buffer (see the matching order in decompress()).
         write<size_t>(quant_inds.size(), buffer_pos);
+
+        encoder.save(buffer_pos);
         encoder.encode(quant_inds, buffer_pos);
         encoder.postprocess_encode();
         
@@ -86,7 +92,6 @@ class SZGenericCompressor : public concepts::CompressorInterface<T> {
         uchar const *bufferPos = buffer;
 
         decomposition.load(bufferPos, bufferSize);
-        encoder.load(bufferPos, bufferSize);
 
         size_t quant_inds_size = 0;
         read(quant_inds_size, bufferPos, bufferSize);
@@ -96,6 +101,12 @@ class SZGenericCompressor : public concepts::CompressorInterface<T> {
         // Require an exact match before decoding.
         if (quant_inds_size != conf.num)
             throw std::out_of_range("SZ3: quantization index count does not match the number of data points");
+
+        // load() records the number of bytes remaining right after the encoder's serialized tree and uses it
+        // to bound the encoded stream during decode(). The quant_inds count above is read BEFORE this so that
+        // the tree is immediately followed by the encoded stream (matching the order in compress()); otherwise
+        // the recorded bound would include this field and a truncated block could read past the buffer.
+        encoder.load(bufferPos, bufferSize);
         auto quant_inds = encoder.decode(bufferPos, quant_inds_size);
         encoder.postprocess_decode();
 
