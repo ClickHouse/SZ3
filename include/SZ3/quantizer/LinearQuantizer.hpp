@@ -42,7 +42,14 @@ public:
     // int quantize(T data, T pred, T& dec_data);
     ALWAYS_INLINE int quantize_and_overwrite(T& data, T pred) override {
         T diff = data - pred;
-        auto quant_index = static_cast<int64_t>(fabs(diff) * this->error_bound_reciprocal) + 1;
+        T scaled_diff = fabs(diff) * this->error_bound_reciprocal;
+        // NaN and values beyond the quantization range cannot be cast to int64_t (the cast is undefined
+        // behavior); they would end up in `unpred` anyway, so send them there without casting.
+        if (!(scaled_diff < static_cast<T>(this->radius) * 2)) {
+            unpred.push_back(data);
+            return 0;
+        }
+        auto quant_index = static_cast<int64_t>(scaled_diff) + 1;
         if (quant_index < this->radius * 2) {
             quant_index >>= 1;
             int half_index = quant_index;
