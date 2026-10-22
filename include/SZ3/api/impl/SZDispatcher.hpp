@@ -8,6 +8,7 @@
 #include "SZ3/utils/Config.hpp"
 #include "SZ3/utils/Statistic.hpp"
 
+#include <limits>
 #include <memory>
 
 namespace SZ3 {
@@ -17,8 +18,9 @@ size_t SZ_compress_dispatcher(Config &conf, const T *data, uchar *cmpData, size_
     calAbsErrorBound(conf, data);
     size_t cmpSize = 0;
 
-    // if absErrorBound is 0, use lossless only mode
-    if (conf.absErrorBound == 0) {
+    // A bound below the smallest normal double (0 included) uses the lossless only mode:
+    // the predictors divide it further (RegressionPredictor by (N + 1) * blockSize), which can underflow to 0.
+    if (conf.absErrorBound < std::numeric_limits<double>::min()) {
         conf.cmprAlgo = ALGO_LOSSLESS;
     }
 
